@@ -90,8 +90,19 @@ def audio_transcribe(input_path, resp_format, openai_api_key):
     return transcript
 
 
+# 영어를 한국어로 번역하는 함수
+def traslate(text, type, openai_api_key, deepl_api_key):
+    if(type == "OpenAI"):
+        translate_transcript = traslate_using_openAI(text, openai_api_key)
+    else:
+        translate_transcript = traslate_using_deepL(text, deepl_api_key)
+
+    return translate_transcript
+
+
+
 # OpenAI 라이브러리를 이용해 영어를 한국어로 번역하는 함수
-def traslate_english_to_korean_using_openAI(text, openai_api_key):    
+def traslate_using_openAI(text, openai_api_key):    
 
     client = OpenAI(api_key=openai_api_key)
 
@@ -114,8 +125,39 @@ def traslate_english_to_korean_using_openAI(text, openai_api_key):
 
 
 # DeepL 라이브러리를 이용해 텍스트를 한국어로 번역하는 함수
-def traslate_english_to_korean_using_deepL(text, deepl_api_key):   
+def traslate_using_deepL(text, deepl_api_key):   
     translator = deepl.Translator(deepl_api_key) # translator 객체를 생성
     result = translator.translate_text(text, target_lang="KO") # 번역 결과 객체를 result 변수에 할당
     
     return result.text
+
+
+
+# OpenAI 라이브러리를 이용해 텍스트를 요약하는 함수
+def summarize_text(user_text, lang, openai_api_key): # lang 인자에 영어를 기본적으로 지정
+    
+    client = OpenAI(api_key=openai_api_key)
+
+    # 대화 메시지 정의
+    if lang == "en":
+        messages = [ 
+            {"role": "system", "content": "You are a helpful assistant in the summary."},
+            {"role": "user", "content": f"Summarize the following. \n {user_text}"}
+        ]
+    elif lang == "ko":
+        messages = [ 
+            {"role": "system", "content": "You are a helpful assistant in the summary."},
+            {"role": "user", "content": f"다음의 내용을 한국어로 요약해 주세요 \n {user_text}"}
+        ]
+        
+    # Chat Completions API 호출
+    response = client.chat.completions.create(
+                            model="gpt-3.5-turbo",  # 사용할 모델 선택 
+                            messages=messages,      # 전달할 메시지 지정
+                            max_tokens=2000,        # 응답 최대 토큰 수 지정 
+                            temperature=0.3,        # 완성의 다양성을 조절하는 온도 설정
+                            n=1                     # 생성할 완성의 개수 지정
+    )     
+    summary = response.choices[0].message.content
+
+    return summary

@@ -17,6 +17,7 @@ def translate_youtube_video(video_url):
     st.write(f"[길이] {yt_duration}")           # 제목 및 상영 시간 출력
     st.divider()
 
+    # 음성 추출하기
     with st.expander("음성 추출 결과 (영문)", expanded=False):
 
         # 유튜브 동영상에서 mp3 추출하기
@@ -31,17 +32,23 @@ def translate_youtube_video(video_url):
         # 추출 결과 출력(전체)
         st.write(f"≫≫≫ 음성 추출 결과\n\n {transcript}")
 
-
+    # 음성 추출 번역하기
     with st.expander("음성 추출 결과 (번역)", expanded=False):
 
         # 추출 결과 출력(전체)
-        if(trans_method == "OpenAI"):
-            translate_transcript = my_yt_tran.traslate_english_to_korean_using_openAI(transcript, openai_api_key)
-            st.write(f"≫≫≫ 음성 추출 번역 결과\n\n {translate_transcript}")
-        else:
-            translate_transcript = my_yt_tran.traslate_english_to_korean_using_deepL(transcript, deepl_api_key)
-            st.write(f"≫≫≫ 음성 추출 번역 결과\n\n {translate_transcript}")
+        translate_transcript = my_yt_tran.traslate(transcript, trans_method, openai_api_key, deepl_api_key)
+        st.write(f"≫≫≫ 음성 추출 번역 결과\n\n {translate_transcript}")
 
+    # 요약하기
+    if(summary_choose == "요약함"):
+        with st.expander("요약 결과 (번역)", expanded=False):
+            summary_en = my_yt_tran.summarize_text(transcript, "en", openai_api_key)
+            st.write(f"≫≫≫ 요약 결과 (영문)\n\n {summary_en}")
+            
+            st.write("\n\n")
+            
+            translate_summary = my_yt_tran.traslate(summary_en, trans_method, openai_api_key, deepl_api_key)
+            st.write(f"≫≫≫ 요약 결과 (한글)\n\n {translate_summary}")
 
 
 # ------------------- 콜백 함수 --------------------
@@ -67,6 +74,10 @@ url_text = st.sidebar.text_input("유튜브 동영상 URL", key="input")
 st.sidebar.divider()
 # 번역 방법 선택하기
 trans_method = st.sidebar.radio('번역 방법 선택', ['OpenAI', 'DeepL'], index=1, horizontal=True)
+
+st.sidebar.divider()
+# 요약 여부 선택하기
+summary_choose = st.sidebar.radio('요약 여부 선택', ['요약함', '요약 안 함'], index=1, horizontal=True)
 
 
 st.sidebar.divider()
