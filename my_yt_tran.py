@@ -61,7 +61,7 @@ def download_youtube_as_mp3(video_url):
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download(video_url) # 다운로드
 
-    return download_path
+    return download_path, video_id
 
 
 # 오디오에서 자막을 추출하는 함수
@@ -77,25 +77,28 @@ def audio_transcribe(input_path, resp_format, openai_api_key):
             file=f,
             response_format=resp_format)            # 추출할 텍스트 형식 지정
 
+    return transcript
+
+
+# 영어를 한국어로 번역하는 함수
+def traslate(input_path, resp_format, text, type, openai_api_key, deepl_api_key):
+    if(type == "OpenAI"):
+        translate_transcript = traslate_using_openAI(text, openai_api_key)
+    else:
+        translate_transcript = traslate_using_deepL(text, deepl_api_key)
+
     # 음성을 텍스트로 추출한 후에 텍스트 파일로 저장
     path = Path(input_path)
-    if resp_format == "text":
+
+    if resp_format == "summary":
+        return translate_transcript
+    elif resp_format == "text":
         output_file = f"{path.parent}/{path.stem}.txt"
     else:
         output_file = f"{path.parent}/{path.stem}.srt"
 
     with open(output_file, 'w', encoding='utf-8') as f:
-        f.write(transcript)
-
-    return transcript
-
-
-# 영어를 한국어로 번역하는 함수
-def traslate(text, type, openai_api_key, deepl_api_key):
-    if(type == "OpenAI"):
-        translate_transcript = traslate_using_openAI(text, openai_api_key)
-    else:
-        translate_transcript = traslate_using_deepL(text, deepl_api_key)
+        f.write(translate_transcript)
 
     return translate_transcript
 
@@ -107,7 +110,7 @@ def traslate_using_openAI(text, openai_api_key):
     client = OpenAI(api_key=openai_api_key)
 
     # 대화 메시지 정의
-    user_content = f"Translate the following sentences into Korean.\n {text}"
+    user_content = f"Translate the following sentences into Korean. Please keep the format of the file intact. If the file is in SRT format, please keep it in SRT format.\n {text}"
     messages = [ {"role": "user", "content": user_content} ]
     
     # Chat Completions API 호출

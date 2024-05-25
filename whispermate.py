@@ -3,7 +3,7 @@ import streamlit as st
 from openai import OpenAI
 from pathlib import Path
 from annotated_text import annotated_text
-
+import streamlit_ext as ste
 
 # 유튜브 동영상을 번역하는 함수
 def translate_youtube_video(video_url):
@@ -17,16 +17,13 @@ def translate_youtube_video(video_url):
     st.write(f"[길이] {yt_duration}")           # 제목 및 상영 시간 출력
     st.divider()
 
+    # 유튜브 동영상에서 mp3 추출하기
+    download_path, video_id = my_yt_tran.download_youtube_as_mp3(video_url)
+
     # 음성 추출하기
     with st.expander("음성 추출 결과 (영문)", expanded=False):
-
-        # 유튜브 동영상에서 mp3 추출하기
-        download_path = my_yt_tran.download_youtube_as_mp3(video_url)
         st.write(f"≫≫≫ 유튜브에서 mp3 파일 다운로드 완료 ({download_path.name})")
 
-        # 출력 형식을 srt로 지정
-        # r_format = "srt" 
-        r_format = "text" 
         transcript = my_yt_tran.audio_transcribe(download_path, r_format, openai_api_key)
 
         # 추출 결과 출력(전체)
@@ -35,9 +32,26 @@ def translate_youtube_video(video_url):
     # 음성 추출 번역하기
     with st.expander("음성 추출 결과 (번역)", expanded=False):
 
+        translate_transcript = my_yt_tran.traslate(download_path, r_format, transcript, trans_method, openai_api_key, deepl_api_key)
+
         # 추출 결과 출력(전체)
-        translate_transcript = my_yt_tran.traslate(transcript, trans_method, openai_api_key, deepl_api_key)
         st.write(f"≫≫≫ 음성 추출 번역 결과\n\n {translate_transcript}")
+    
+    download_folder = "./download"      # 다운로드할 폴더는 미리 생성 후 지정  
+    output_file = f"{download_folder}/{video_id}.srt"
+    file_name = f"{video_id}.srt"
+
+    if r_format == "text":
+        output_file = f"{download_folder}/{video_id}.txt"
+        file_name = f"{video_id}.txt"
+        
+    with open(output_file, encoding='utf-8') as f:
+        text_data = f.read()
+        ste.download_button(
+            label="음성 추출 결과 다운로드",
+            data = text_data,
+            file_name=file_name
+        )
 
     # 요약하기
     if(summary_choose == "요약함"):
@@ -47,7 +61,7 @@ def translate_youtube_video(video_url):
             
             st.write("\n\n")
             
-            translate_summary = my_yt_tran.traslate(summary_en, trans_method, openai_api_key, deepl_api_key)
+            translate_summary = my_yt_tran.traslate(download_path, "summary", summary_en, trans_method, openai_api_key, deepl_api_key)
             st.write(f"≫≫≫ 요약 결과 (한글)\n\n {translate_summary}")
 
 
@@ -72,8 +86,16 @@ url_text = st.sidebar.text_input("유튜브 동영상 URL", key="input")
 
 
 st.sidebar.divider()
-# 번역 방법 선택하기
-trans_method = st.sidebar.radio('번역 방법 선택', ['OpenAI', 'DeepL'], index=1, horizontal=True)
+# 번역 도구 선택하기
+trans_method = st.sidebar.radio('번역 도구 선택', ['OpenAI', 'DeepL'], index=1, horizontal=True)
+
+st.sidebar.divider()
+# 출력 형식 선택하기
+output_format = st.sidebar.radio('번역 형식 선택', ['텍스트(txt)', '자막(srt)'], index=1, horizontal=True)
+if(output_format == "텍스트(txt)"):
+    r_format = "text"
+else:
+    r_format = "srt"
 
 st.sidebar.divider()
 # 요약 여부 선택하기
